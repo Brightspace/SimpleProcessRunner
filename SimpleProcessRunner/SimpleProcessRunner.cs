@@ -1,12 +1,11 @@
 ﻿using System;
 using System.Diagnostics;
-using System.Threading.Tasks;
+using System.Globalization;
+using System.Text;
 
 namespace SimpleProcessRunner {
 
 	public sealed class SimpleProcessRunner : ISimpleProcessRunner {
-
-		private const string timeoutMsg = "Timed out waiting for process to exit";
 
 		public ProcessResult Run(
 				string workingDirectory,
@@ -17,43 +16,60 @@ namespace SimpleProcessRunner {
 
 			int timeoutMilliseconds = Convert.ToInt32( timeout.TotalMilliseconds );
 
-			ProcessStartInfo psi = new ProcessStartInfo {
-				FileName = process,
-				Arguments = arguments,
-				WorkingDirectory = workingDirectory,
-
-				CreateNoWindow = true,
-				RedirectStandardError = true,
-				RedirectStandardOutput = true,
-				UseShellExecute = false
-			};
-
 			int exitCode;
-			string standardOutput;
-			string standardError;
+			StringBuilder standardOutput = new StringBuilder();
+			StringBuilder standardError = new StringBuilder();
+			Stopwatch watch = new Stopwatch();
 
-			Stopwatch watch = Stopwatch.StartNew();
+			using( Process p = new Process() ) {
 
-			using( Process p = Process.Start( psi ) ) {
+				ProcessStartInfo psi = p.StartInfo;
+				psi.FileName = process;
+				psi.Arguments = arguments;
+				psi.WorkingDirectory = workingDirectory;
 
+				psi.CreateNoWindow = true;
+				psi.UseShellExecute = false;
+				psi.RedirectStandardOutput = true;
+				psi.RedirectStandardError = true;
+
+				p.OutputDataReceived +=
+					delegate( object sender, DataReceivedEventArgs @event ) {
+						if( !String.IsNullOrEmpty( @event.Data ) ) {
+							standardOutput.AppendLine( @event.Data );
+						}
+					};
+
+				p.ErrorDataReceived +=
+					delegate( object sender, DataReceivedEventArgs @event ) {
+						if( !String.IsNullOrEmpty( @event.Data ) ) {
+							standardError.AppendLine( @event.Data );
+						}
+					};
+
+				watch.Start();
+
+				p.Start();
 				try {
-					Task<string> standardOutputTask = p.StandardOutput.ReadToEndAsync();
-					Task<string> standardErrorTask = p.StandardError.ReadToEndAsync();
+					p.BeginOutputReadLine();
+					p.BeginErrorReadLine();
 
-					if( !standardOutputTask.Wait( timeoutMilliseconds ) ) {
-						throw new TimeoutException( timeoutMsg );
-					}
+					if( p.WaitForExit( timeoutMilliseconds ) ) {
 
-					if( !standardErrorTask.Wait( timeoutMilliseconds ) ) {
-						throw new TimeoutException( timeoutMsg );
-					}
+						// Call the blocking WaitForExit to ensure that the asynchronous output and error
+						// streams have been received
+						// http://msdn.microsoft.com/en-us/library/fb4aw7b8%28v=vs.110%29.aspx
+						p.WaitForExit();
 
-					standardOutput = standardOutputTask.Result;
-					standardError = standardErrorTask.Result;
+					} else {
 
-					// ----------------------------------------------------
+						string timeoutMsg = String.Format(
+								 CultureInfo.InvariantCulture,
+								 "Timed out waiting for process {0} ( {1} ) to exit",
+								 process,
+								 arguments
+							 );
 
-					if( !p.WaitForExit( timeoutMilliseconds ) ) {
 						throw new TimeoutException( timeoutMsg );
 					}
 
@@ -65,9 +81,9 @@ namespace SimpleProcessRunner {
 						p.Kill();
 					}
 				}
-			}
 
-			watch.Stop();
+				watch.Stop();
+			}
 
 			ProcessResult result = new ProcessResult(
 					workingDirectory: workingDirectory,
