@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2013
-VisualStudioVersion = 12.0.21005.1
+VisualStudioVersion = 12.0.30723.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SimpleProcessRunner", "SimpleProcessRunner\SimpleProcessRunner.csproj", "{2265CEAB-8D8D-4925-A527-6D5CED29A49F}"
 EndProject
@@ -10,6 +10,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{DBFF0A
 		.nuget\NuGet.Config = .nuget\NuGet.Config
 		.nuget\NuGet.targets = .nuget\NuGet.targets
 	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SimpleProcessRunnerTests", "SimpleProcessRunnerTests\SimpleProcessRunnerTests.csproj", "{6B2E67DE-7C29-4DE6-9282-CBA59B06C51D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +23,10 @@ Global
 		{2265CEAB-8D8D-4925-A527-6D5CED29A49F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2265CEAB-8D8D-4925-A527-6D5CED29A49F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2265CEAB-8D8D-4925-A527-6D5CED29A49F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6B2E67DE-7C29-4DE6-9282-CBA59B06C51D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6B2E67DE-7C29-4DE6-9282-CBA59B06C51D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6B2E67DE-7C29-4DE6-9282-CBA59B06C51D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6B2E67DE-7C29-4DE6-9282-CBA59B06C51D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
