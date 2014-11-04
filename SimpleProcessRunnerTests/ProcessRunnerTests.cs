@@ -6,13 +6,13 @@ namespace SimpleProcessRunnerTests {
 
 	[TestFixture]
 	[Category( "Integration" )]
-	public sealed class SimpleProcessRunnerTests {
+	public sealed class ProcessRunnerTests {
 
-		private ISimpleProcessRunner m_runner;
+		private IProcessRunner m_runner;
 
 		[TestFixtureSetUp]
 		public void TestFixtureSetUp() {
-			m_runner = new SimpleProcessRunner.SimpleProcessRunner();
+			m_runner = new SimpleProcessRunner.ProcessRunner();
 		}
 
 		[Test]

@@ -5,7 +5,9 @@ using System.Text;
 
 namespace SimpleProcessRunner {
 
-	public sealed class SimpleProcessRunner : ISimpleProcessRunner {
+	public sealed class ProcessRunner : IProcessRunner {
+
+		public static IProcessRunner Default = new ProcessRunner();
 
 		public ProcessResult Run(
 				string workingDirectory,

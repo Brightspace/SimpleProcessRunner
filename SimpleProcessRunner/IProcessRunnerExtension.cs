@@ -3,10 +3,10 @@ using System.IO;
 
 namespace SimpleProcessRunner {
 
-	public static class ISimpleProcessRunnerExtension {
+	public static class IProcessRunnerExtension {
 
 		public static ProcessResult Run(
-				this ISimpleProcessRunner runner,
+				this IProcessRunner runner,
 				string process,
 				string arguments,
 				TimeSpan timeout
@@ -21,7 +21,7 @@ namespace SimpleProcessRunner {
 		}
 
 		public static ProcessResult Run(
-				this ISimpleProcessRunner runner,
+				this IProcessRunner runner,
 				FileInfo process,
 				string arguments,
 				TimeSpan timeout
@@ -36,7 +36,7 @@ namespace SimpleProcessRunner {
 		}
 
 		public static ProcessResult Run(
-				this ISimpleProcessRunner runner,
+				this IProcessRunner runner,
 				DirectoryInfo workingDirectory,
 				FileInfo process,
 				string arguments,

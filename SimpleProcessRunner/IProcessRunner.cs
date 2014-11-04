@@ -3,7 +3,7 @@ using System.IO;
 
 namespace SimpleProcessRunner {
 
-	public interface ISimpleProcessRunner {
+	public interface IProcessRunner {
 
 		/// <summary>
 		/// Runs the process.
