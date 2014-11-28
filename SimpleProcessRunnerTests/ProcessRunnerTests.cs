@@ -20,16 +20,6 @@ namespace SimpleProcessRunnerTests {
 		}
 
 		[Test]
-		public void Timeout() {
-
-			Assert.Throws<TimeoutException>(
-				() => {
-					m_runner.Run( "git.exe", "clone http://test.org", TimeSpan.FromSeconds( 1 ) );
-				}
-			);
-		}
-
-		[Test]
 		public void StandardOutput() {
 
 			ProcessResult result = m_runner.Run(
@@ -73,7 +63,7 @@ namespace SimpleProcessRunnerTests {
 					m_runner.Run(
 						parentProcess,
 						args,
-						TimeSpan.FromSeconds( 1 )
+						TimeSpan.FromSeconds( 2 )
 					);
 				}
 			);
@@ -96,7 +86,7 @@ namespace SimpleProcessRunnerTests {
 					m_runner.Run(
 						parentProcess,
 						args,
-						TimeSpan.FromSeconds( 10 )
+						TimeSpan.FromSeconds( 2 )
 					);
 				}
 			);
