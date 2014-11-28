@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Globalization;
+using System.Management;
 using System.Text;
 
 namespace SimpleProcessRunner {
@@ -52,6 +53,8 @@ namespace SimpleProcessRunner {
 				watch.Start();
 
 				p.Start();
+				int processId = p.Id;
+
 				try {
 					p.BeginOutputReadLine();
 					p.BeginErrorReadLine();
@@ -66,11 +69,11 @@ namespace SimpleProcessRunner {
 					} else {
 
 						string timeoutMsg = String.Format(
-								 CultureInfo.InvariantCulture,
-								 "Timed out waiting for process {0} ( {1} ) to exit",
-								 process,
-								 arguments
-							 );
+								CultureInfo.InvariantCulture,
+								"Timed out waiting for process {0} ( {1} ) to exit",
+								process,
+								arguments
+							);
 
 						throw new TimeoutException( timeoutMsg );
 					}
@@ -78,6 +81,8 @@ namespace SimpleProcessRunner {
 					exitCode = p.ExitCode;
 
 				} finally {
+
+					KillChildProcesses( processId );
 
 					if( !p.HasExited ) {
 						p.Kill();
@@ -98,6 +103,37 @@ namespace SimpleProcessRunner {
 				);
 
 			return result;
+		}
+
+		private const string QueryTempalte = @"
+SELECT ProcessId
+FROM Win32_Process
+WHERE (
+	ParentProcessId = {0}
+)";
+
+		private void KillChildProcesses( int prcoessId ) {
+
+			string query = String.Format(
+					CultureInfo.InvariantCulture,
+					QueryTempalte,
+					prcoessId
+				);
+
+			ManagementObjectSearcher searcher = new ManagementObjectSearcher( query );
+
+			ManagementObjectCollection moc = searcher.Get();
+			foreach( ManagementObject mo in moc ) {
+
+				int childProcessId = Convert.ToInt32( mo["ProcessId"] );
+				KillChildProcesses( childProcessId );
+
+				try {
+					Process proc = Process.GetProcessById( childProcessId );
+					proc.Kill();
+				} catch {
+				}
+			}
 		}
 	}
 }
