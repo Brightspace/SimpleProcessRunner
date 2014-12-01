@@ -147,8 +147,11 @@ WHERE (
 
 				foreach( ManagementObject mo in moc ) {
 
-					int childProcessId = Convert.ToInt32( mo["ProcessId"] );
-					yield return childProcessId;
+					using( mo ) {
+
+						int childProcessId = Convert.ToInt32( mo["ProcessId"] );
+						yield return childProcessId;
+					}
 				}
 			}
 		}
