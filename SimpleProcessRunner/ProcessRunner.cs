@@ -112,12 +112,16 @@ WHERE (
 	ParentProcessId = {0}
 )";
 
-		private void KillChildProcesses( int prcoessId ) {
+		private void KillChildProcesses( int processId ) {
+
+			if( processId <= 0 ) {
+				return;
+			}
 
 			string query = String.Format(
 					CultureInfo.InvariantCulture,
 					QueryTempalte,
-					prcoessId
+					processId
 				);
 
 			ManagementObjectSearcher searcher = new ManagementObjectSearcher( query );
