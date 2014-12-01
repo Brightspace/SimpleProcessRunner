@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
+using System.Linq;
 using System.Management;
 using System.Text;
 
@@ -118,24 +120,35 @@ WHERE (
 				return;
 			}
 
+			int[] childProcessIds = GetChildProcessIds( processId ).ToArray();
+			foreach( int childProcessId in childProcessIds ) {
+
+				KillChildProcesses( childProcessId );
+
+				try {
+					using( Process proc = Process.GetProcessById( childProcessId ) ) {
+						proc.Kill();
+					}
+				} catch {
+				}
+			}
+		}
+
+		private IEnumerable<int> GetChildProcessIds( int processId ) {
+
 			string query = String.Format(
 					CultureInfo.InvariantCulture,
 					QueryTempalte,
 					processId
 				);
 
-			ManagementObjectSearcher searcher = new ManagementObjectSearcher( query );
+			using( ManagementObjectSearcher searcher = new ManagementObjectSearcher( query ) )
+			using( ManagementObjectCollection moc = searcher.Get() ) {
 
-			ManagementObjectCollection moc = searcher.Get();
-			foreach( ManagementObject mo in moc ) {
+				foreach( ManagementObject mo in moc ) {
 
-				int childProcessId = Convert.ToInt32( mo["ProcessId"] );
-				KillChildProcesses( childProcessId );
-
-				try {
-					Process proc = Process.GetProcessById( childProcessId );
-					proc.Kill();
-				} catch {
+					int childProcessId = Convert.ToInt32( mo["ProcessId"] );
+					yield return childProcessId;
 				}
 			}
 		}
