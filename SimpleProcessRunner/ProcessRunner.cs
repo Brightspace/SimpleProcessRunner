@@ -89,6 +89,8 @@ namespace SimpleProcessRunner {
 
 				} finally {
 
+					p.Refresh();
+
 					if( !p.HasExited ) {
 						p.Kill();
 					}
