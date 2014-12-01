@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Reflection;
+using System.Threading;
 using NUnit.Framework;
 using SimpleProcessRunner;
 
@@ -90,6 +91,18 @@ namespace SimpleProcessRunnerTests {
 					);
 				}
 			);
+		}
+
+
+		[Test]
+		[Explicit( "Should only be run manually" )]
+		public void ContinuousTimeoutTest() {
+
+			for( int i = 0; i < 1000; i++ ) {
+
+				Timeout_WithNestedChildProcess();
+				Thread.Sleep( 100 );
+			}
 		}
 
 		private string GetTestProcess( string relativePath ) {

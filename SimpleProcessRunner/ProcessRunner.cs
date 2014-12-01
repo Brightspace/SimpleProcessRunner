@@ -82,9 +82,12 @@ namespace SimpleProcessRunner {
 
 					exitCode = p.ExitCode;
 
-				} finally {
+				} catch( TimeoutException ) {
 
 					KillChildProcesses( processId );
+					throw;
+
+				} finally {
 
 					if( !p.HasExited ) {
 						p.Kill();
