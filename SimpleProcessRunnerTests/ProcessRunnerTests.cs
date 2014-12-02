@@ -93,6 +93,36 @@ namespace SimpleProcessRunnerTests {
 			);
 		}
 
+		[Test]
+		public void Timeout_WithDeepNestedChildProcess() {
+
+			string parentProcess = GetTestProcess( "TestParentProcess.exe" );
+			string hangingProcess = GetTestProcess( "TestHangingProcess.exe" );
+
+			string args = ProcessArgumentsFormatter.Format(
+					parentProcess,
+					parentProcess,
+					parentProcess,
+					parentProcess,
+					parentProcess,
+					parentProcess,
+					parentProcess,
+					parentProcess,
+					parentProcess,
+					hangingProcess,
+					SixtySeconds
+				);
+
+			Assert.Throws<TimeoutException>(
+				() => {
+					m_runner.Run(
+						parentProcess,
+						args,
+						TimeSpan.FromSeconds( 2 )
+					);
+				}
+			);
+		}
 
 		[Test]
 		[Explicit( "Should only be run manually" )]

@@ -8,7 +8,7 @@ using System.Text;
 
 namespace SimpleProcessRunner {
 
-	public sealed class ProcessRunner : IProcessRunner {
+	public sealed partial class ProcessRunner : IProcessRunner {
 
 		public static IProcessRunner Default = new ProcessRunner();
 
@@ -55,7 +55,9 @@ namespace SimpleProcessRunner {
 				watch.Start();
 
 				p.Start();
+
 				int processId = p.Id;
+				DateTime startTime = p.StartTime;
 
 				try {
 					p.BeginOutputReadLine();
@@ -84,7 +86,7 @@ namespace SimpleProcessRunner {
 
 				} catch( TimeoutException ) {
 
-					KillChildProcesses( processId );
+					KillChildProcesses( processId, startTime );
 					throw;
 
 				} finally {
@@ -112,26 +114,28 @@ namespace SimpleProcessRunner {
 			return result;
 		}
 
-		private const string QueryTempalte = @"
-SELECT ProcessId
-FROM Win32_Process
-WHERE (
-	ParentProcessId = {0}
-)";
+		private void KillChildProcesses(
+				int parentProcessId,
+				DateTime startTime
+			) {
 
-		private void KillChildProcesses( int processId ) {
-
-			if( processId <= 0 ) {
+			if( parentProcessId <= 0 ) {
 				return;
 			}
 
-			int[] childProcessIds = GetChildProcessIds( processId ).ToArray();
-			foreach( int childProcessId in childProcessIds ) {
+			ChildProcess[] childProcesses = GetChildProcesses( parentProcessId )
+				.Where( child => child.StartTime >= startTime )
+				.ToArray();
 
-				KillChildProcesses( childProcessId );
+			foreach( ChildProcess childProcess in childProcesses ) {
+
+				KillChildProcesses(
+						childProcess.ProcessId,
+						childProcess.StartTime
+					);
 
 				try {
-					using( Process proc = Process.GetProcessById( childProcessId ) ) {
+					using( Process proc = Process.GetProcessById( childProcess.ProcessId ) ) {
 						proc.Kill();
 					}
 				} catch {
@@ -139,12 +143,22 @@ WHERE (
 			}
 		}
 
-		private IEnumerable<int> GetChildProcessIds( int processId ) {
+		private const string QueryTempalte = @"
+SELECT
+	ProcessId,
+	CreationDate
+
+FROM Win32_Process
+WHERE (
+	ParentProcessId = {0}
+)";
+
+		private IEnumerable<ChildProcess> GetChildProcesses( int parentProcessId ) {
 
 			string query = String.Format(
 					CultureInfo.InvariantCulture,
 					QueryTempalte,
-					processId
+					parentProcessId
 				);
 
 			using( ManagementObjectSearcher searcher = new ManagementObjectSearcher( query ) )
@@ -155,7 +169,11 @@ WHERE (
 					using( mo ) {
 
 						int childProcessId = Convert.ToInt32( mo["ProcessId"] );
-						yield return childProcessId;
+
+						string creationDate = mo["CreationDate"].ToString();
+						DateTime childStartTime = ManagementDateTimeConverter.ToDateTime( creationDate );
+
+						yield return new ChildProcess( childProcessId, childStartTime );
 					}
 				}
 			}
