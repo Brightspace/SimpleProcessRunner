@@ -41,14 +41,18 @@ namespace SimpleProcessRunner {
 				p.OutputDataReceived +=
 					delegate( object sender, DataReceivedEventArgs @event ) {
 						if( !String.IsNullOrEmpty( @event.Data ) ) {
-							standardOutput.AppendLine( @event.Data );
+							lock( standardOutput ) {
+								standardOutput.AppendLine( @event.Data );
+							}
 						}
 					};
 
 				p.ErrorDataReceived +=
 					delegate( object sender, DataReceivedEventArgs @event ) {
 						if( !String.IsNullOrEmpty( @event.Data ) ) {
-							standardError.AppendLine( @event.Data );
+							lock( standardError ) {
+								standardError.AppendLine( @event.Data );
+							}
 						}
 					};
 
@@ -79,7 +83,24 @@ namespace SimpleProcessRunner {
 								arguments
 							);
 
-						throw new TimeoutException( timeoutMsg );
+						string standardOutputTxt;
+						lock( standardOutput ) {
+							standardOutputTxt = standardOutput.ToString();
+						}
+
+						string standardErrorTxt;
+						lock( standardError ) {
+							standardErrorTxt = standardError.ToString();
+						}
+
+						throw new ProcessTimeoutException(
+								message: timeoutMsg,
+								workingDirectory: workingDirectory,
+								process: process,
+								arguments: arguments,
+								standardOutput: standardOutputTxt,
+								standardError: standardErrorTxt
+							);
 					}
 
 					exitCode = p.ExitCode;
@@ -101,17 +122,29 @@ namespace SimpleProcessRunner {
 				watch.Stop();
 			}
 
-			ProcessResult result = new ProcessResult(
-					workingDirectory: workingDirectory,
-					process: process,
-					arguments: arguments,
-					exitCode: exitCode,
-					standardOutput: standardOutput.ToString(),
-					standardError: standardError.ToString(),
-					duration: watch.Elapsed
-				);
+			{
+				string standardOutputTxt;
+				lock( standardOutput ) {
+					standardOutputTxt = standardOutput.ToString();
+				}
 
-			return result;
+				string standardErrorTxt;
+				lock( standardError ) {
+					standardErrorTxt = standardError.ToString();
+				}
+
+				ProcessResult result = new ProcessResult(
+						workingDirectory: workingDirectory,
+						process: process,
+						arguments: arguments,
+						exitCode: exitCode,
+						standardOutput: standardOutputTxt,
+						standardError: standardErrorTxt,
+						duration: watch.Elapsed
+					);
+
+				return result;
+			}
 		}
 
 		private void KillChildProcesses(

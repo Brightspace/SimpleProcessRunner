@@ -59,7 +59,7 @@ namespace SimpleProcessRunnerTests {
 					SixtySeconds
 				);
 
-			Assert.Throws<TimeoutException>(
+			Assert.Throws<ProcessTimeoutException>(
 				() => {
 					m_runner.Run(
 						parentProcess,
@@ -82,7 +82,7 @@ namespace SimpleProcessRunnerTests {
 					SixtySeconds
 				);
 
-			Assert.Throws<TimeoutException>(
+			Assert.Throws<ProcessTimeoutException>(
 				() => {
 					m_runner.Run(
 						parentProcess,
@@ -113,7 +113,7 @@ namespace SimpleProcessRunnerTests {
 					SixtySeconds
 				);
 
-			Assert.Throws<TimeoutException>(
+			Assert.Throws<ProcessTimeoutException>(
 				() => {
 					m_runner.Run(
 						parentProcess,

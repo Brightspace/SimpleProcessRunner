@@ -44,6 +44,7 @@
     <Compile Include="ProcessArgumentsFormatter.cs" />
     <Compile Include="ProcessResult.cs" />
     <Compile Include="ProcessRunner.ChildProcess.cs" />
+    <Compile Include="ProcessTimeoutException.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ProcessRunner.cs" />
   </ItemGroup>
