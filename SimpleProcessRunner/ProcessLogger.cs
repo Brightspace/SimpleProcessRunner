@@ -44,16 +44,7 @@ namespace SimpleProcessRunner {
 		}
 
 		public ProcessResult GetProcessResult( Process p ) {
-			Log log = GetLogs();
-
-			return new ProcessResult(
-				workingDirectory: m_workingDirectory,
-				process: m_fileName,
-				arguments: m_arguments,
-				exitCode: p.ExitCode,
-				standardOutput: log.StandardOutput,
-				standardError: log.StandardError,
-				duration: p.ExitTime - p.StartTime );
+			return GetProcessResult( p.ExitCode, p.ExitTime - p.StartTime );
 		}
 
 		public ProcessResult GetProcessResult(int exitCode, TimeSpan duration) {
