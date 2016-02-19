@@ -42,6 +42,8 @@
     <Compile Include="IProcessRunner.cs" />
     <Compile Include="IProcessRunnerExtension.cs" />
     <Compile Include="ProcessArgumentsFormatter.cs" />
+    <Compile Include="ProcessExtensions.cs" />
+    <Compile Include="ProcessLogger.cs" />
     <Compile Include="ProcessResult.cs" />
     <Compile Include="ProcessRunner.ChildProcess.cs" />
     <Compile Include="ProcessTimeoutException.cs" />
