@@ -4,7 +4,10 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Management;
+using System.Runtime.Remoting.Channels;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace SimpleProcessRunner {
 
@@ -38,23 +41,8 @@ namespace SimpleProcessRunner {
 				psi.RedirectStandardOutput = true;
 				psi.RedirectStandardError = true;
 
-				p.OutputDataReceived +=
-					delegate( object sender, DataReceivedEventArgs @event ) {
-						if( !String.IsNullOrEmpty( @event.Data ) ) {
-							lock( standardOutput ) {
-								standardOutput.AppendLine( @event.Data );
-							}
-						}
-					};
-
-				p.ErrorDataReceived +=
-					delegate( object sender, DataReceivedEventArgs @event ) {
-						if( !String.IsNullOrEmpty( @event.Data ) ) {
-							lock( standardError ) {
-								standardError.AppendLine( @event.Data );
-							}
-						}
-					};
+				p.OutputDataReceived += WriteToBuffer( standardOutput );
+				p.ErrorDataReceived += WriteToBuffer( standardError );
 
 				watch.Start();
 
@@ -145,6 +133,120 @@ namespace SimpleProcessRunner {
 
 				return result;
 			}
+		}
+
+		public async Task<ProcessResult> RunAsync(
+			string workingDirectory,
+			string process,
+			string arguments,
+			TimeSpan timeout
+		) {
+			var completionSource = new TaskCompletionSource<int>();
+
+			StringBuilder standardOutput = new StringBuilder();
+			StringBuilder standardError = new StringBuilder();
+
+			ProcessStartInfo psi = new ProcessStartInfo( process, arguments ) {
+				WorkingDirectory = workingDirectory,
+				CreateNoWindow = true,
+				UseShellExecute = false,
+				RedirectStandardOutput = true,
+				RedirectStandardError = true,
+			};
+
+			Process p = new Process {
+				StartInfo = psi,
+				EnableRaisingEvents = true
+			};
+
+			p.OutputDataReceived += WriteToBuffer(standardOutput);
+			p.ErrorDataReceived += WriteToBuffer(standardError);
+
+			TaskCompletionSource<ProcessResult> tcs = new TaskCompletionSource<ProcessResult>();
+			p.Exited += (sender, eventArgs) => {
+				Process p2 = (Process)sender;
+				try {
+					string standardOutputTxt;
+					lock (standardOutput) {
+						standardOutputTxt = standardOutput.ToString();
+					}
+
+					string standardErrorTxt;
+					lock (standardError) {
+						standardErrorTxt = standardError.ToString();
+					}
+
+					ProcessResult result = new ProcessResult(
+						workingDirectory: workingDirectory,
+						process: process,
+						arguments: arguments,
+						exitCode: p2.ExitCode,
+						standardOutput: standardOutputTxt,
+						standardError: standardErrorTxt,
+						duration: (p2.ExitTime - p2.StartTime) );
+
+					tcs.TrySetResult(result);
+				} catch (Exception ex) {
+					tcs.TrySetException(ex);
+				}
+			};
+
+			p.Start();
+			p.BeginErrorReadLine();
+			p.BeginOutputReadLine();
+			
+			if( timeout > TimeSpan.Zero ) {
+				CancellationTokenSource cts = new CancellationTokenSource( timeout );
+
+				cts.Token.Register(
+					() => {
+						tcs.TrySetCanceled();	
+					},
+					false );
+			}
+
+			try {
+				return await tcs.Task;
+			} catch( TaskCanceledException ) {
+				KillChildProcesses( p.Id, p.StartTime );
+				
+				string timeoutMsg = String.Format(
+					CultureInfo.InvariantCulture,
+					"Timed out waiting for process {0} ( {1} ) to exit",
+					process,
+					arguments
+					);
+				string standardOutputTxt;
+				lock( standardOutput ) {
+					standardOutputTxt = standardOutput.ToString();
+				}
+
+				string standardErrorTxt;
+				lock( standardError ) {
+					standardErrorTxt = standardError.ToString();
+				}
+				
+				throw new ProcessTimeoutException(
+					message: timeoutMsg,
+					workingDirectory: workingDirectory,
+					process: process,
+					arguments: arguments,
+					standardOutput: standardOutputTxt,
+					standardError: standardErrorTxt
+					);
+			} finally {
+				p.Dispose();
+			}
+		}
+
+		private DataReceivedEventHandler WriteToBuffer( StringBuilder sb ) {
+			return ( obj, @event ) => {
+				if( !String.IsNullOrEmpty( @event.Data ) ) {
+					lock(sb) {
+						sb.AppendLine( @event.Data );
+					}
+				}
+			};
 		}
 
 		private void KillChildProcesses(
