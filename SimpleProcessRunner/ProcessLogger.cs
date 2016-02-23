@@ -7,17 +7,16 @@ namespace SimpleProcessRunner {
 
 	internal class ProcessLogger {
 
-		private readonly string m_arguments;
-		private readonly string m_fileName;
+		private readonly Process m_process;
 
 		private readonly StringBuilder m_stdError = new StringBuilder();
 		private readonly StringBuilder m_stdOutput = new StringBuilder();
-		private readonly string m_workingDirectory;
 
 		public ProcessLogger( Process p ) {
-			m_workingDirectory = p.StartInfo.WorkingDirectory;
-			m_fileName = p.StartInfo.FileName;
-			m_arguments = p.StartInfo.Arguments;
+			if( p == null ) {
+				throw new ArgumentNullException( "p", "Process cannot be null" );
+			}
+			m_process = p;
 			RegisterProcess( p );
 		}
 
@@ -36,18 +35,18 @@ namespace SimpleProcessRunner {
 			};
 		}
 
-		public ProcessResult GetProcessResult( Process p ) {
-			return GetProcessResult( p.ExitCode, p.ExitTime - p.StartTime );
+		public ProcessResult GetProcessResult() {
+			return GetProcessResult( m_process.ExitTime - m_process.StartTime );
 		}
 
-		public ProcessResult GetProcessResult( int exitCode, TimeSpan duration ) {
+		public ProcessResult GetProcessResult( TimeSpan duration ) {
 			Log log = GetLogs();
 
 			return new ProcessResult(
-				workingDirectory: m_workingDirectory,
-				process: m_fileName,
-				arguments: m_arguments,
-				exitCode: exitCode,
+				workingDirectory: m_process.StartInfo.WorkingDirectory,
+				process: m_process.StartInfo.FileName,
+				arguments: m_process.StartInfo.Arguments,
+				exitCode: m_process.ExitCode,
 				standardOutput: log.StandardOutput,
 				standardError: log.StandardError,
 				duration: duration );
@@ -57,16 +56,16 @@ namespace SimpleProcessRunner {
 			string timeoutMsg = String.Format(
 				CultureInfo.InvariantCulture,
 				"Timed out waiting for process {0} ( {1} ) to exit",
-				m_fileName,
-				m_arguments );
+				m_process.StartInfo.FileName,
+				m_process.StartInfo.Arguments );
 
 			Log log = GetLogs();
 
 			return new ProcessTimeoutException(
 				message: timeoutMsg,
-				workingDirectory: m_workingDirectory,
-				process: m_fileName,
-				arguments: m_arguments,
+				workingDirectory: m_process.StartInfo.WorkingDirectory,
+				process: m_process.StartInfo.FileName,
+				arguments: m_process.StartInfo.Arguments,
 				standardOutput: log.StandardOutput,
 				standardError: log.StandardError );
 

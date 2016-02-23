@@ -31,7 +31,6 @@ namespace SimpleProcessRunner {
 
 				p.Start();
 
-				int processId = p.Id;
 				DateTime startTime = p.StartTime;
 
 				try {
@@ -49,7 +48,7 @@ namespace SimpleProcessRunner {
 						throw logger.GetTimeoutException();
 					}
 
-					result = logger.GetProcessResult( p.ExitCode, watch.Elapsed );
+					result = logger.GetProcessResult( watch.Elapsed );
 
 				} catch( TimeoutException ) {
 
@@ -91,7 +90,7 @@ namespace SimpleProcessRunner {
 			p.Exited += ( sender, eventArgs ) => {
 				Process p2 = (Process) sender;
 				try {
-					ProcessResult result = logger.GetProcessResult( p2 );
+					ProcessResult result = logger.GetProcessResult();
 					tcs.TrySetResult( result );
 				} catch( Exception ex ) {
 					tcs.TrySetException( ex );
