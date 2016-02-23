@@ -1,11 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Globalization;
-using System.Linq;
-using System.Management;
-using System.Runtime.Remoting.Channels;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -20,19 +14,18 @@ namespace SimpleProcessRunner {
 			string process,
 			string arguments,
 			TimeSpan timeout
-			) {
+		) {
 
 			int timeoutMilliseconds = Convert.ToInt32( timeout.TotalMilliseconds );
-			ProcessLogger logger = new ProcessLogger( workingDirectory, process, arguments );
+			ProcessResult result;
 
-			int exitCode;
 			Stopwatch watch = new Stopwatch();
 
 			using( Process p = new Process() ) {
 
 				p.StartInfo = GetStartInfo( workingDirectory, process, arguments );
 
-				logger.RegisterProcess( p );
+				ProcessLogger logger = new ProcessLogger( p );
 
 				watch.Start();
 
@@ -56,7 +49,7 @@ namespace SimpleProcessRunner {
 						throw logger.GetTimeoutException();
 					}
 
-					exitCode = p.ExitCode;
+					result = logger.GetProcessResult( p.ExitCode, watch.Elapsed );
 
 				} catch( TimeoutException ) {
 
@@ -75,8 +68,6 @@ namespace SimpleProcessRunner {
 				watch.Stop();
 			}
 
-			ProcessResult result = logger.GetProcessResult( exitCode, watch.Elapsed );
-
 			return result;
 		}
 
@@ -86,7 +77,6 @@ namespace SimpleProcessRunner {
 			string arguments,
 			TimeSpan timeout
 		) {
-			ProcessLogger logger = new ProcessLogger( workingDirectory, process, arguments );
 
 			ProcessStartInfo psi = GetStartInfo( workingDirectory, process, arguments );
 
@@ -95,7 +85,7 @@ namespace SimpleProcessRunner {
 				EnableRaisingEvents = true
 			};
 
-			logger.RegisterProcess( p );
+			ProcessLogger logger = new ProcessLogger( p );
 
 			TaskCompletionSource<ProcessResult> tcs = new TaskCompletionSource<ProcessResult>();
 			p.Exited += ( sender, eventArgs ) => {
@@ -134,7 +124,7 @@ namespace SimpleProcessRunner {
 			string workingDir,
 			string filename,
 			string arguments
-			) {
+		) {
 
 			ProcessStartInfo psi = new ProcessStartInfo( filename, arguments );
 			psi.WorkingDirectory = workingDir;
