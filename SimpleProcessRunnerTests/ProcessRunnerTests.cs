@@ -2,7 +2,6 @@
 using System.IO;
 using System.Reflection;
 using System.Threading;
-using System.Threading.Tasks;
 using NUnit.Framework;
 using SimpleProcessRunner;
 
@@ -135,7 +134,9 @@ namespace SimpleProcessRunnerTests {
 				Thread.Sleep( 100 );
 			}
 		}
+
 		private string GetTestProcess( string relativePath ) {
+
 			Assembly aseembly = this.GetType().Assembly;
 			FileInfo assemblyFile = new FileInfo( aseembly.Location );
 
