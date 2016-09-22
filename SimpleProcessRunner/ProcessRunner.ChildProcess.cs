@@ -2,9 +2,9 @@
 
 namespace SimpleProcessRunner {
 
-	public partial class ProcessRunner {
+	partial class ProcessRunner {
 
-		internal sealed class ChildProcess {
+		private sealed class ChildProcess {
 
 			public readonly int ProcessId;
 			public readonly DateTime StartTime;
