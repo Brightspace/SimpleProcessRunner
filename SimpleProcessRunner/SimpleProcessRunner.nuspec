@@ -7,6 +7,7 @@
     <authors>$author$</authors>
     <owners>$author$</owners>
     <projectUrl>https://github.com/Brightspace/SimpleProcessRunner</projectUrl>
+	<licenseUrl>https://raw.githubusercontent.com/Brightspace/SimpleProcessRunner/master/LICENSE</licenseUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>$description$</description>
     <copyright>Copyright 2017</copyright>
