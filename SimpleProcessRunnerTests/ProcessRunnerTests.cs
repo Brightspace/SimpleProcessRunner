@@ -13,12 +13,7 @@ namespace SimpleProcessRunnerTests {
 
 		private const int SixtySeconds = 60000;
 
-		private IProcessRunner m_runner;
-
-		[TestFixtureSetUp]
-		public void TestFixtureSetUp() {
-			m_runner = new SimpleProcessRunner.ProcessRunner();
-		}
+		private readonly IProcessRunner m_runner = new SimpleProcessRunner.ProcessRunner();
 
 		[Test]
 		public void StandardOutput() {
