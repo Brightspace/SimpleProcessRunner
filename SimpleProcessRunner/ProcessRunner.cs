@@ -106,6 +106,9 @@ namespace SimpleProcessRunner {
 								arguments
 							);
 
+						p.CancelOutputRead();
+						p.CancelErrorRead();
+
 						string standardOutputTxt;
 						lock( standardOutput ) {
 							standardOutputTxt = standardOutput.ToString();
