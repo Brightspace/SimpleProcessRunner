@@ -99,15 +99,15 @@ namespace SimpleProcessRunner {
 
 					} else {
 
+						p.CancelOutputRead();
+						p.CancelErrorRead();
+
 						string timeoutMsg = String.Format(
 								CultureInfo.InvariantCulture,
 								"Timed out waiting for process {0} ( {1} ) to exit",
 								process,
 								arguments
 							);
-
-						p.CancelOutputRead();
-						p.CancelErrorRead();
 
 						string standardOutputTxt;
 						lock( standardOutput ) {
