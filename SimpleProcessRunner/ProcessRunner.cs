@@ -45,7 +45,10 @@ namespace SimpleProcessRunner {
 					delegate ( object sender, DataReceivedEventArgs @event ) {
 
 						if( @event.Data == null ) {
-							standardOutputEndEvent.Set();
+							try {
+								standardOutputEndEvent.Set();
+							} catch( ObjectDisposedException ) {
+							}
 
 						} else if( @event.Data.Length > 0 ) {
 							lock( standardOutput ) {
@@ -58,7 +61,10 @@ namespace SimpleProcessRunner {
 					delegate ( object sender, DataReceivedEventArgs @event ) {
 
 						if( @event.Data == null ) {
-							standardErrorEndEvent.Set();
+							try {
+								standardErrorEndEvent.Set();
+							} catch( ObjectDisposedException ) {
+							}
 
 						} else if( @event.Data.Length > 0 ) {
 							lock( standardError ) {
