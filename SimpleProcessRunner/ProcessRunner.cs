@@ -27,8 +27,8 @@ namespace SimpleProcessRunner {
 			StringBuilder standardError = new StringBuilder();
 			Stopwatch watch = new Stopwatch();
 
-			using( AutoResetEvent standardOutputEndEvent = new AutoResetEvent( false ) )
-			using( AutoResetEvent standardErrorEndEvent = new AutoResetEvent( false ) )
+			using( ManualResetEvent standardOutputEndEvent = new ManualResetEvent( false ) )
+			using( ManualResetEvent standardErrorEndEvent = new ManualResetEvent( false ) )
 			using( Process p = new Process() ) {
 
 				ProcessStartInfo psi = p.StartInfo;
