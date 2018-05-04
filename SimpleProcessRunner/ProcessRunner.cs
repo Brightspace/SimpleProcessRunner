@@ -5,6 +5,7 @@ using System.Globalization;
 using System.Linq;
 using System.Management;
 using System.Text;
+using System.Threading;
 
 namespace SimpleProcessRunner {
 
@@ -26,6 +27,8 @@ namespace SimpleProcessRunner {
 			StringBuilder standardError = new StringBuilder();
 			Stopwatch watch = new Stopwatch();
 
+			using( AutoResetEvent standardOutputEndEvent = new AutoResetEvent( false ) )
+			using( AutoResetEvent standardErrorEndEvent = new AutoResetEvent( false ) )
 			using( Process p = new Process() ) {
 
 				ProcessStartInfo psi = p.StartInfo;
@@ -39,8 +42,12 @@ namespace SimpleProcessRunner {
 				psi.RedirectStandardError = true;
 
 				p.OutputDataReceived +=
-					delegate( object sender, DataReceivedEventArgs @event ) {
-						if( !String.IsNullOrEmpty( @event.Data ) ) {
+					delegate ( object sender, DataReceivedEventArgs @event ) {
+
+						if( @event.Data == null ) {
+							standardOutputEndEvent.Set();
+
+						} else if( @event.Data.Length > 0 ) {
 							lock( standardOutput ) {
 								standardOutput.AppendLine( @event.Data );
 							}
@@ -48,8 +55,12 @@ namespace SimpleProcessRunner {
 					};
 
 				p.ErrorDataReceived +=
-					delegate( object sender, DataReceivedEventArgs @event ) {
-						if( !String.IsNullOrEmpty( @event.Data ) ) {
+					delegate ( object sender, DataReceivedEventArgs @event ) {
+
+						if( @event.Data == null ) {
+							standardErrorEndEvent.Set();
+
+						} else if( @event.Data.Length > 0 ) {
 							lock( standardError ) {
 								standardError.AppendLine( @event.Data );
 							}
@@ -67,7 +78,13 @@ namespace SimpleProcessRunner {
 					p.BeginOutputReadLine();
 					p.BeginErrorReadLine();
 
-					if( p.WaitForExit( timeoutMilliseconds ) ) {
+					bool exited = (
+						p.WaitForExit( timeoutMilliseconds )
+						&& standardOutputEndEvent.WaitOne( timeoutMilliseconds )
+						&& standardErrorEndEvent.WaitOne( timeoutMilliseconds )
+					);
+
+					if( exited ) {
 
 						// Call the blocking WaitForExit to ensure that the asynchronous output and error
 						// streams have been received
@@ -201,9 +218,9 @@ WHERE (
 
 					using( mo ) {
 
-						int childProcessId = Convert.ToInt32( mo["ProcessId"] );
+						int childProcessId = Convert.ToInt32( mo[ "ProcessId" ] );
 
-						string creationDate = mo["CreationDate"].ToString();
+						string creationDate = mo[ "CreationDate" ].ToString();
 						DateTime childStartTime = ManagementDateTimeConverter.ToDateTime( creationDate );
 
 						yield return new ChildProcess( childProcessId, childStartTime );

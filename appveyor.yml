@@ -1,7 +1,7 @@
-version: 4.0.1-{branch}-{build}
+version: 4.0.2-{branch}-{build}
 
 environment:
-  ASSEMBLY_FILE_VERSION: 4.0.1
+  ASSEMBLY_FILE_VERSION: 4.0.2
 
 nuget:
   project_feed: true
