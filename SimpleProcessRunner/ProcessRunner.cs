@@ -6,6 +6,7 @@ using System.Linq;
 using System.Management;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace SimpleProcessRunner {
 
@@ -14,19 +15,43 @@ namespace SimpleProcessRunner {
 		public static IProcessRunner Default = new ProcessRunner();
 
 		public ProcessResult Run(
+			string workingDirectory,
+			string process,
+			string arguments,
+			TimeSpan timeout
+		) {
+			return RunAsync(
+				workingDirectory: workingDirectory,
+				process: process,
+				arguments: arguments,
+				timeout: timeout,
+				cancellationToken: default( CancellationToken )
+			).ConfigureAwait( false ).GetAwaiter().GetResult();
+		}
+
+		public async Task<ProcessResult> RunAsync(
 				string workingDirectory,
 				string process,
 				string arguments,
-				TimeSpan timeout
+				TimeSpan timeout,
+				CancellationToken cancellationToken
 			) {
-
-			int timeoutMilliseconds = Convert.ToInt32( timeout.TotalMilliseconds );
 
 			int exitCode;
 			StringBuilder standardOutput = new StringBuilder();
 			StringBuilder standardError = new StringBuilder();
 			Stopwatch watch = new Stopwatch();
 
+			CancellationTokenSource timeoutCts = new CancellationTokenSource( timeout );
+			CancellationTokenSource cts = timeoutCts;
+			if( cancellationToken.CanBeCanceled ) {
+				cts = CancellationTokenSource.CreateLinkedTokenSource( cts.Token, cancellationToken );
+			}
+
+			TaskCompletionSource<bool> exitTcs = new TaskCompletionSource<bool>();
+
+			using( cts )
+			using( cts.Token.Register( () => exitTcs.TrySetCanceled() ) )
 			using( ManualResetEvent standardOutputEndEvent = new ManualResetEvent( false ) )
 			using( ManualResetEvent standardErrorEndEvent = new ManualResetEvent( false ) )
 			using( Process p = new Process() ) {
@@ -40,6 +65,8 @@ namespace SimpleProcessRunner {
 				psi.UseShellExecute = false;
 				psi.RedirectStandardOutput = true;
 				psi.RedirectStandardError = true;
+
+				p.EnableRaisingEvents = true;
 
 				p.OutputDataReceived +=
 					delegate ( object sender, DataReceivedEventArgs @event ) {
@@ -73,6 +100,11 @@ namespace SimpleProcessRunner {
 						}
 					};
 
+				p.Exited +=
+					delegate ( object sender, EventArgs @event ) {
+						exitTcs.TrySetResult( true );
+					};
+
 				watch.Start();
 
 				p.Start();
@@ -84,58 +116,74 @@ namespace SimpleProcessRunner {
 					p.BeginOutputReadLine();
 					p.BeginErrorReadLine();
 
-					bool exited = (
-						p.WaitForExit( timeoutMilliseconds )
-						&& standardOutputEndEvent.WaitOne( timeoutMilliseconds )
-						&& standardErrorEndEvent.WaitOne( timeoutMilliseconds )
-					);
+					await exitTcs.Task.ConfigureAwait( false );
 
-					if( exited ) {
+					// Call the blocking WaitForExit to ensure that the asynchronous output and error
+					// streams have been received
+					// http://msdn.microsoft.com/en-us/library/fb4aw7b8%28v=vs.110%29.aspx
+					p.WaitForExit();
 
-						// Call the blocking WaitForExit to ensure that the asynchronous output and error
-						// streams have been received
-						// http://msdn.microsoft.com/en-us/library/fb4aw7b8%28v=vs.110%29.aspx
-						p.WaitForExit();
-
-					} else {
-
-						p.CancelOutputRead();
-						p.CancelErrorRead();
-
-						string timeoutMsg = String.Format(
-								CultureInfo.InvariantCulture,
-								"Timed out waiting for process {0} ( {1} ) to exit",
-								process,
-								arguments
-							);
-
-						string standardOutputTxt;
-						lock( standardOutput ) {
-							standardOutputTxt = standardOutput.ToString();
-						}
-
-						string standardErrorTxt;
-						lock( standardError ) {
-							standardErrorTxt = standardError.ToString();
-						}
-
-						throw new ProcessTimeoutException(
-								message: timeoutMsg,
-								workingDirectory: workingDirectory,
-								process: process,
-								arguments: arguments,
-								standardOutput: standardOutputTxt,
-								standardError: standardErrorTxt
-							);
-					}
+					watch.Stop();
 
 					exitCode = p.ExitCode;
 
-				} catch( TimeoutException ) {
+					string standardOutputTxt;
+					lock( standardOutput ) {
+						standardOutputTxt = standardOutput.ToString();
+					}
+
+					string standardErrorTxt;
+					lock( standardError ) {
+						standardErrorTxt = standardError.ToString();
+					}
+
+					ProcessResult result = new ProcessResult(
+							workingDirectory: workingDirectory,
+							process: process,
+							arguments: arguments,
+							exitCode: exitCode,
+							standardOutput: standardOutputTxt,
+							standardError: standardErrorTxt,
+							duration: watch.Elapsed
+						);
+
+					return result;
+
+				} catch( TaskCanceledException ) {
+					p.CancelOutputRead();
+					p.CancelErrorRead();
+
+					if( !timeoutCts.IsCancellationRequested ) {
+						throw;
+					}
 
 					KillChildProcesses( processId, startTime );
-					throw;
 
+					string timeoutMsg = String.Format(
+							CultureInfo.InvariantCulture,
+							"Timed out waiting for process {0} ( {1} ) to exit",
+							process,
+							arguments
+						);
+
+					string standardOutputTxt;
+					lock( standardOutput ) {
+						standardOutputTxt = standardOutput.ToString();
+					}
+
+					string standardErrorTxt;
+					lock( standardError ) {
+						standardErrorTxt = standardError.ToString();
+					}
+
+					throw new ProcessTimeoutException(
+						message: timeoutMsg,
+						workingDirectory: workingDirectory,
+						process: process,
+						arguments: arguments,
+						standardOutput: standardOutputTxt,
+						standardError: standardErrorTxt
+					);
 				} finally {
 
 					p.Refresh();
@@ -144,32 +192,6 @@ namespace SimpleProcessRunner {
 						p.Kill();
 					}
 				}
-
-				watch.Stop();
-			}
-
-			{
-				string standardOutputTxt;
-				lock( standardOutput ) {
-					standardOutputTxt = standardOutput.ToString();
-				}
-
-				string standardErrorTxt;
-				lock( standardError ) {
-					standardErrorTxt = standardError.ToString();
-				}
-
-				ProcessResult result = new ProcessResult(
-						workingDirectory: workingDirectory,
-						process: process,
-						arguments: arguments,
-						exitCode: exitCode,
-						standardOutput: standardOutputTxt,
-						standardError: standardErrorTxt,
-						duration: watch.Elapsed
-					);
-
-				return result;
 			}
 		}
 
